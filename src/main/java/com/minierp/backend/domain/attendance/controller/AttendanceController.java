@@ -8,6 +8,8 @@ import com.minierp.backend.domain.attendance.dto.CheckInResponseDto;
 import com.minierp.backend.domain.attendance.dto.CheckOutRequestDto;
 import com.minierp.backend.domain.attendance.dto.CheckOutResponseDto;
 import com.minierp.backend.domain.attendance.service.AttendanceService;
+import com.minierp.backend.global.exception.BusinessException;
+import com.minierp.backend.global.exception.ErrorCode;
 import com.minierp.backend.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +38,7 @@ public class AttendanceController {
             @Valid @RequestBody CheckInRequestDto requestDto,
             Authentication authentication
     ) {
-        CheckInResponseDto response = attendanceService.checkIn(authentication.getName(), requestDto);
+        CheckInResponseDto response = attendanceService.checkIn(extractUserId(authentication), requestDto);
         return ResponseEntity.ok(ApiResponse.success(response, "출근이 기록되었습니다"));
     }
 
@@ -46,7 +48,7 @@ public class AttendanceController {
             @Valid @RequestBody CheckOutRequestDto requestDto,
             Authentication authentication
     ) {
-        CheckOutResponseDto response = attendanceService.checkOut(authentication.getName(), workDate, requestDto);
+        CheckOutResponseDto response = attendanceService.checkOut(extractUserId(authentication), workDate, requestDto);
         return ResponseEntity.ok(ApiResponse.success(response, "퇴근이 기록되었습니다"));
     }
 
@@ -56,7 +58,7 @@ public class AttendanceController {
             @Valid @RequestBody AttendanceUpdateRequestDto requestDto,
             Authentication authentication
     ) {
-        AttendanceUpdateResponseDto response = attendanceService.updateFullAttendance(authentication.getName(), workDate, requestDto);
+        AttendanceUpdateResponseDto response = attendanceService.updateFullAttendance(extractUserId(authentication), workDate, requestDto);
         return ResponseEntity.ok(ApiResponse.success(response, "근태 기록이 수정되었습니다"));
     }
 
@@ -65,7 +67,19 @@ public class AttendanceController {
             @RequestParam String month,
             Authentication authentication
     ) {
-        AttendanceSummaryDto response = attendanceService.getMonthlySummary(authentication.getName(), month);
+        AttendanceSummaryDto response = attendanceService.getMonthlySummary(extractUserId(authentication), month);
         return ResponseEntity.ok(ApiResponse.success(response, "근태 요약 조회가 완료되었습니다"));
+    }
+
+    private Long extractUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        try {
+            return Long.valueOf(authentication.getName());
+        } catch (NumberFormatException e) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 사용자 정보가 올바르지 않습니다.");
+        }
     }
 }

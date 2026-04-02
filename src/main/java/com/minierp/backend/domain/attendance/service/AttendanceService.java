@@ -34,8 +34,8 @@ public class AttendanceService {
     private final UserRepository userRepository;
 
     @Transactional
-    public CheckInResponseDto checkIn(String loginId, CheckInRequestDto requestDto) {
-        User user = getUserByLoginId(loginId);
+    public CheckInResponseDto checkIn(Long userId, CheckInRequestDto requestDto) {
+        User user = getUserById(userId);
         LocalDate workDate = requestDto.getWorkDate();
 
         attendanceRepository.findByUserAndWorkDate(user, workDate)
@@ -55,8 +55,8 @@ public class AttendanceService {
     }
 
     @Transactional
-    public CheckOutResponseDto checkOut(String loginId, LocalDate workDate, CheckOutRequestDto requestDto) {
-        User user = getUserByLoginId(loginId);
+    public CheckOutResponseDto checkOut(Long userId, LocalDate workDate, CheckOutRequestDto requestDto) {
+        User user = getUserById(userId);
 
         Attendance attendance = attendanceRepository.findByUserAndWorkDate(user, workDate)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 날짜의 출근 기록이 없습니다."));
@@ -66,8 +66,8 @@ public class AttendanceService {
     }
 
     @Transactional
-    public AttendanceUpdateResponseDto updateAttendance(String loginId, LocalDate workDate, CheckOutRequestDto checkOutRequestDto) {
-        User user = getUserByLoginId(loginId);
+    public AttendanceUpdateResponseDto updateAttendance(Long userId, LocalDate workDate, CheckOutRequestDto checkOutRequestDto) {
+        User user = getUserById(userId);
 
         Attendance attendance = attendanceRepository.findByUserAndWorkDate(user, workDate)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 날짜의 근태 기록이 없습니다."));
@@ -77,8 +77,8 @@ public class AttendanceService {
     }
 
     @Transactional
-    public AttendanceUpdateResponseDto updateFullAttendance(String loginId, LocalDate workDate, AttendanceUpdateRequestDto requestDto) {
-        User user = getUserByLoginId(loginId);
+    public AttendanceUpdateResponseDto updateFullAttendance(Long userId, LocalDate workDate, AttendanceUpdateRequestDto requestDto) {
+        User user = getUserById(userId);
 
         Attendance attendance = attendanceRepository.findByUserAndWorkDate(user, workDate)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 날짜의 근태 기록이 없습니다."));
@@ -88,8 +88,8 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
-    public AttendanceSummaryDto getMonthlySummary(String loginId, String month) {
-        User user = getUserByLoginId(loginId);
+    public AttendanceSummaryDto getMonthlySummary(Long userId, String month) {
+        User user = getUserById(userId);
         YearMonth yearMonth = parseYearMonth(month);
 
         List<Attendance> attendances = attendanceRepository.findAllByUserAndWorkDateBetweenOrderByWorkDateAsc(
@@ -116,9 +116,9 @@ public class AttendanceService {
         return AttendanceSummaryDto.of(workDaysCount, clockInTimes, clockOutTimes, leaveUsedCount);
     }
 
-    private User getUserByLoginId(String loginId) {
-        return userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
     private boolean isHoliday(LocalDate date) {
