@@ -1,12 +1,12 @@
 # Entity 설계서
 
 ## 문서 정보
-- **프로젝트명**: 사내 프로젝트 트래킹 및 연차 전자결재 그룹웨어
-- **작성자**: 팀 작성
-- **작성일**: 2026-03-28
-- **버전**: v2.0
-- **검토자**: 백엔드 개발팀
-- **승인자**: 팀 리더
+- **프로젝트명**: 사내 프로젝트 관리 및 결재 통합 시스템사내 프로젝트/업무 트래킹과 연차/휴가 전자결재를 하나로 합친 그룹웨어
+- **작성자**: [팀명/김보민]
+- **작성일**: [2026-04-03]
+- **버전**: [v1.0]
+- **검토자**: [김보민, 김민희, 이새연]
+- **승인자**: [이채현]
 
 ---
 
@@ -14,57 +14,19 @@
 
 ### 1.1 설계 목적
 > JPA Entity 클래스 설계를 통해 객체-관계 매핑(ORM)을 정의하고,
-> 프로젝트 업무 관리/연차 결재 비즈니스 도메인을 코드로 표현하여 유지보수가 용이한 시스템을 구축
+> 비즈니스 도메인을 코드로 표현하여 유지보수가 용이한 시스템을 구축
 
 ### 1.2 설계 원칙
 - **단일 책임 원칙**: 하나의 Entity는 하나의 비즈니스 개념만 표현
-- **캡슐화**: 핵심 상태 변경 로직을 Entity 내부 메서드로 관리
-- **불변성 지향**: 생성 이후 불필요한 Setter 사용 최소화
-- **연관관계 최소화**: 필요한 관계만 매핑하여 복잡도와 결합도 감소
+- **캡슐화**: 비즈니스 로직을 Entity 내부에 구현
+- **불변성**: 가능한 한 불변 객체로 설계
+- **연관관계 최소화**: 필요한 관계만 매핑하여 복잡도 감소
 
 ### 1.3 기술 스택
-- **ORM 프레임워크**: Spring Data JPA 2.7.x
+- **ORM 프레임워크**: Spring Data JPA
 - **데이터베이스**: MariaDB 10.11
-- **검증 프레임워크**: Bean Validation 2.0
+- **검증 프레임워크**: Bean Validation
 - **감사 기능**: Spring Data JPA Auditing
-
-### 1.4 DTO 명명 일관성 (코드 기준)
-
-본 문서에서 참조하는 API DTO 이름은 아래 클래스명을 기준으로 통일합니다.
-
-### 인증/계정 DTO
-- 회원가입: `SignupRequestDto`, `UserResponseDto`
-- 로그인: `LoginRequestDto`, `LoginResponseDto`
-- 아이디 찾기: `FindIdRequestDto`, `FindIdResponseDto`
-- 비밀번호 재설정:
-  - 요청: `PasswordResetRequestDto`, `PasswordResetRequestResponseDto`
-  - 검증: `PasswordResetVerifyDto`, `PasswordResetVerifyResponseDto`
-  - 확정: `PasswordResetConfirmDto`, `PasswordResetConfirmResponseDto`
-
-> 참고: `FindEmailRequestDto`, `FindPasswordRequestDto`는 현재 미사용이며 정리되었습니다.
-
-### 사용자 관리 DTO
-- 목록: `UserListResponseDto`
-- 상세/수정: `UserResponseDto`, `UserUpdateRequestDto`
-- 권한 변경: `UserRoleUpdateRequestDto`, `UserRoleUpdateResponseDto`
-
-### 근태 DTO
-- 출근: `CheckInRequestDto`, `CheckInResponseDto`
-- 퇴근: `CheckOutRequestDto`, `CheckOutResponseDto`
-- 수정: `AttendanceUpdateRequestDto`, `AttendanceUpdateResponseDto`
-- 요약: `AttendanceSummaryDto`
-
-### 연차 DTO
-- 신청/응답: `LeaveRequestCreateDto`, `LeaveRequestResponseDto`
-- 반려: `RejectRequestDto`
-- 잔여: `LeaveBalanceResponseDto`
-- 정책: `LeavePolicyResponseDto`
-
-### 특근 DTO
-- 신청/응답: `OvertimeRequestDto`, `OvertimeResponseDto`
-
-### 캘린더 DTO
-- 이벤트 응답: `CalendarEventResponseDto`
 
 ---
 
@@ -74,15 +36,17 @@
 | Entity명 | 유형 | 비즈니스 중요도 | 기술적 복잡도 | 우선순위 |
 |----------|------|----------------|---------------|----------|
 | **User** | 핵심 | 높음 | 중간 | 1순위 |
+| **Project** | 핵심 | 높음 | 중간 | 1순위 |
 | **Task** | 핵심 | 높음 | 중간 | 1순위 |
-| **TaskAssignment** | 핵심 | 높음 | 낮음 | 1순위 |
-| **Approval(LeaveRequest)** | 핵심 | 높음 | 높음 | 1순위 |
+| **LeaveRequest** | 핵심 | 높음 | 높음 | 1순위 |
 | **OvertimeRequest** | 핵심 | 높음 | 중간 | 1순위 |
 | **Attendance** | 지원 | 중간 | 중간 | 2순위 |
+| **ProjectMember** | 지원 | 중간 | 낮음 | 2순위 |
+| **TaskAssignment** | 지원 | 중간 | 낮음 | 2순위 |
 
 ### 2.2 Entity 상속 구조
 
-모든 Entity는 BaseEntity(id, createdAt, updatedAt 포함)를 상속합니다.
+모든 Entity는 `BaseEntity`(`id`, `createdAt`, `updatedAt`)를 상속합니다.
 
 ---
 
@@ -91,17 +55,16 @@
 ### 3.1 네이밍 규칙
 | 구분 | 규칙 | 예시 | 비고 |
 |------|------|------|------|
-| **Entity 클래스명** | PascalCase | `User`, `Task` | 단수형 사용 |
-| **테이블명** | snake_case | `users`, `tasks` | 복수형 사용 |
-| **컬럼명** | snake_case | `user_id`, `task_status` | 언더스코어 구분 |
-| **연관관계 필드** | camelCase | `assignedTasks`, `assignee` | 객체 참조명 |
+| **Entity 클래스명** | PascalCase | `User`, `LeaveRequest` | 단수형 사용 |
+| **테이블명** | snake_case | `users`, `leave_requests` | 복수형 사용 |
+| **컬럼명** | snake_case | `user_id`, `created_at` | 언더스코어 구분 |
+| **연관관계 필드** | camelCase | `projectMembers`, `taskAssignments` | 객체 참조명 |
 | **boolean 필드** | is + 형용사 | `isActive` | 명확한 의미 |
 
 ### 3.2 공통 어노테이션 규칙
 ```java
-// 기본 Entity 구조
 @Entity
-@Table(name = "테이블명")
+@Table(name = "table_name")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 public class EntityName extends BaseEntity {
@@ -113,10 +76,11 @@ public class EntityName extends BaseEntity {
 | Entity | 전략 | 이유 | 예시 |
 |--------|------|------|------|
 | **User** | IDENTITY | MariaDB Auto Increment 활용 | 1, 2, 3, ... |
-| **Task** | IDENTITY | 업무 증가 순서 추적 | 1, 2, 3, ... |
-| **TaskAssignment** | IDENTITY | 매핑 관리 단순화 | 1, 2, 3, ... |
-| **Approval(LeaveRequest)** | IDENTITY | 결재 이력 추적 용이 | 1, 2, 3, ... |
-| **Attendance** | IDENTITY | 일자별 기록 관리 용이 | 1, 2, 3, ... |
+| **Project** | IDENTITY | 프로젝트 생성 순서 보장 | 1, 2, 3, ... |
+| **Task** | IDENTITY | 업무 생성 순서 보장 | 1, 2, 3, ... |
+| **LeaveRequest** | IDENTITY | 결재 이력 순서 보장 | 1, 2, 3, ... |
+| **OvertimeRequest** | IDENTITY | 신청 순서 보장 | 1, 2, 3, ... |
+| **Attendance** | IDENTITY | 근태 레코드 관리 단순화 | 1, 2, 3, ... |
 
 ---
 
@@ -139,235 +103,122 @@ public class User extends BaseEntity {
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|-------------|--------|----------|------|---------------|
 | **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 사용자 식별자 | 시스템 자동 생성 |
-| **loginId** | `String` | `login_id` | UNIQUE, NOT NULL, LENGTH(50) | 로그인 아이디 | 4-20자, 중복 불가 |
-| **userName** | `String` | `user_name` | NOT NULL, LENGTH(50) | 사용자명 | 2-50자 |
+| **loginId** | `String` | `login_id` | UNIQUE, NOT NULL, LENGTH(50) | 로그인 아이디 | 중복 불가 |
+| **userName** | `String` | `user_name` | NOT NULL, LENGTH(50) | 이름 | 필수 입력 |
 | **userEmail** | `String` | `user_email` | UNIQUE, NOT NULL, LENGTH(100) | 이메일 | 중복 불가 |
-| **userPw** | `String` | `user_pw` | NOT NULL, LENGTH(255) | 암호화 비밀번호 | BCrypt 암호화 |
+| **userPw** | `String` | `user_pw` | NOT NULL, LENGTH(255) | 암호화 비밀번호 | BCrypt 저장 |
 | **positionName** | `String` | `position_name` | NOT NULL, LENGTH(30) | 직책 | 사원/대리/과장/팀장/관리소장 |
-| **assignRole** | `String` | `assign_role` | NULL 허용, LENGTH(30) | 업무 배정 역할 | 프로젝트/특근 관련 보조 역할 |
-| **userRole** | `UserRole` | `user_role` | NOT NULL, ENUM | 시스템 권한 | USER, TEAM_LEADER, ADMIN |
-| **isActive** | `Boolean` | `is_active` | NOT NULL, DEFAULT(true) | 활성 여부 | 소프트 삭제 용도 |
-| **totalAnnualLeave** | `BigDecimal` | `total_annual_leave` | NOT NULL, scale=1 | 총 연차 | 기본 부여 |
-| **usedAnnualLeave** | `BigDecimal` | `used_annual_leave` | NOT NULL, scale=1 | 사용 연차 | 승인 시 증가 |
-| **remainingAnnualLeave** | `BigDecimal` | `remaining_annual_leave` | NOT NULL, scale=1 | 잔여 연차 | 승인 시 차감 |
+| **assignRole** | `String` | `assign_role` | NULL 허용 | 보조 역할 | 특근 승인 플래그 등에 사용 |
+| **userRole** | `UserRole` | `user_role` | NOT NULL, ENUM | 시스템 권한 | USER/TEAM_LEADER/ADMIN |
+| **isActive** | `boolean` | `is_active` | NOT NULL | 활성 여부 | 기본 true |
+| **totalAnnualLeave** | `BigDecimal` | `total_annual_leave` | NOT NULL | 총 연차 | 직책별 초기값 부여 |
+| **usedAnnualLeave** | `BigDecimal` | `used_annual_leave` | NOT NULL | 사용 연차 | 승인 시 증가 |
+| **remainingAnnualLeave** | `BigDecimal` | `remaining_annual_leave` | NOT NULL | 잔여 연차 | 승인 시 차감 |
 
-#### 4.1.3 연관관계 매핑
+직책별 초기 연차 정책:
+- 사원 14.0
+- 대리 16.0
+- 과장 17.0
+- 팀장 18.0
+- 관리소장/관리자 19.0
+
+#### 4.1.3 핵심 비즈니스 메서드
 ```java
-// 1:N - 사용자가 담당자인 업무 목록
-@OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
-private List<Task> assignedTasks = new ArrayList<>();
-
-// 1:N - 사용자가 업무에 할당된 목록
-@OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-private List<TaskAssignment> taskAssignments = new ArrayList<>();
-
-// 1:N - 사용자가 신청한 결재 목록
-@OneToMany(mappedBy = "requester", fetch = FetchType.LAZY)
-private List<Approval> leaveRequests = new ArrayList<>();
+public void changeRole(UserRole userRole)
+public void updateProfile(String userName, String positionName)
+public void updatePassword(String newEncodedPassword)
+public void deductAnnualLeave(BigDecimal usedDays)
 ```
 
-### 4.2 Project Entity 
-### (업무(Task)의 상위 개념으로서 프로젝트를 관리할 수 있도록 설계)
+### 4.2 Project Entity
 
-#### 4.2.1 기본 정보
-@Entity
-@Table(name = "projects")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
-public class Project extends BaseEntity {
-    // 필드 정의 (아래 상세 명세 참조)
-}
-
-
-#### 4.2.2 필드 상세 명세 
+#### 4.2.1 필드 상세 명세
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|-------------|--------|----------|------|---------------|
-| **id** | `Long` | `project_id` | PK, NOT NULL, AUTO_INCREMENT | 프로젝트 식별자 | 시스템 자동 생성 |
-| **title** | `String` | `title` | NOT NULL, LENGTH(100) | 프로젝트 명칭 | 필수 입력 |
-| **content** | `String` | `content` | LENGTH(1000) | 프로젝트 내용 | 프로젝트 상세 설명 |
-| **projectType** | `ProjectType` | `project_type` | NOT NULL, ENUM | 프로젝트 유형 | GROUPWARE, ERP, MOBILE |
-| **startDate** | `LocalDate` | `start_date` | NOT NULL | 시작 일자 |필수 입력 |
-| **endDate** | `LocalDate` | `end_date` | NOT NULL | 종료 일자 | 시작일 이후여야 함 |
-| **status** | `ProjectStatus` | `status` | NOT NULL, ENUM | 진행 상태| READY, PROGRESS, DONE, HOLD |
+| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 프로젝트 식별자 | 시스템 자동 생성 |
+| **title** | `String` | `title` | NOT NULL, LENGTH(100) | 프로젝트명 | 필수 |
+| **content** | `String` | `content` | LENGTH(1000) | 설명 | 선택 |
+| **startDate** | `LocalDate` | `start_date` | NOT NULL | 시작일 | 종료일 이전 |
+| **endDate** | `LocalDate` | `end_date` | NOT NULL | 종료일 | 시작일 이후 |
+| **status** | `ProjectStatus` | `status` | NOT NULL, ENUM | 상태 | READY/PROGRESS/DONE/HOLD |
+| **priority** | `Priority` | `priority` | NOT NULL, ENUM | 우선순위 | HIGH/MEDIUM/LOW |
+| **leader** | `User` | `leader_id` | FK, NULL 허용 | 담당 팀장 | TEAM_LEADER 권장 |
 
+#### 4.2.2 연관관계
+- `projectMembers` (1:N)
+- `tasks` (1:N)
 
-#### 4.1.3 구현 코드 예시 및 연관관계 매핑
-@Entity
-@Table(name = "projects")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
-public class Project extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "project_id")
-    private Long id;
-
-    @Column(nullable = false, length = 100)
-    private String title;
-
-    @Column(length = 1000)
-    private String content;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "project_type", nullable = false)
-    private ProjectType projectType;
-
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
-
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ProjectStatus status = ProjectStatus.READY;
-
-    // 1:N - 프로젝트에 포함된 업무(Task) 목록
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Task> tasks = new ArrayList<>();
-
-    @PrePersist
-    @PreUpdate
-    private void validatePeriod() {
-        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("종료일은 시작일보다 빠를 수 없습니다.");
-        }
-    }
-}
-
-
+#### 4.2.3 핵심 메서드
+```java
+public static Project create(...)
+public void update(...)
+public void assignLeader(User leader)
+public void updateStatusByTasks()
 ```
 
 ### 4.3 Task Entity
 
 #### 4.3.1 필드 상세 명세
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|-------------|--------|----------|------|----------------|
+|--------|-------------|--------|----------|------|---------------|
 | **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 업무 식별자 | 시스템 자동 생성 |
-| **taskTitle** | `String` | `Task_title` | NOT NULL, LENGTH(100) | 업무 제목 | 필수 입력 |
-| **taskContent** | `String` | `Task_content` | NOT NULL, LENGTH(1000) | 업무 내용 | 필수 입력 |
-| **taskState** | `TaskStatus` | `Task_State` | NOT NULL, ENUM | 진행 상태 | TODO, DOING, DONE |
-| **startDate** | `LocalDate` | `start_date` | NOT NULL | 시작 일자 | 필수 입력 |
-| **endDate** | `LocalDate` | `end_date` | NOT NULL | 종료 일자 | 시작일 이후 |
-| **taskNo** | `String` | `Task_No` | NULL 허용, LENGTH(50) | 업무 번호 | 업무 분류 번호 |
+| **taskTitle** | `String` | `task_title` | NOT NULL, LENGTH(100) | 제목 | 필수 |
+| **taskContent** | `String` | `task_content` | NOT NULL, LENGTH(1000) | 내용 | 필수 |
+| **endDate** | `LocalDate` | `end_date` | NOT NULL | 마감일 | 프로젝트 종료일 초과 불가 |
+| **taskStatus** | `TaskStatus` | `task_status` | NOT NULL, ENUM | 상태 | TODO/DOING/DONE |
+| **priority** | `Priority` | `priority` | NOT NULL, ENUM | 우선순위 | HIGH/MEDIUM/LOW |
+| **project** | `Project` | `project_id` | FK, NOT NULL | 프로젝트 참조 | 필수 |
 
-#### 4.3.2 구현 코드 예시
+#### 4.3.2 핵심 메서드
 ```java
-@Entity
-@Table(name = "tasks")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
-public class Task extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id", nullable = false)
-    private User assignee;
-
-    @Column(name = "Task_title", nullable = false, length = 100)
-    @NotBlank
-    private String taskTitle;
-
-    @Column(name = "Task_content", nullable = false, length = 1000)
-    @NotBlank
-    private String taskContent;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "Task_State", nullable = false)
-    private TaskStatus taskState = TaskStatus.TODO;
-
-    @Column(name = "start_date", nullable = false)
-    private LocalDate startDate;
-
-    @Column(name = "end_date", nullable = false)
-    private LocalDate endDate;
-
-    @Column(name = "Task_No", length = 50)
-    private String taskNo;
-
-    public void changeStatus(TaskStatus nextStatus, Long actorUserId, UserRole actorRole) {
-        if (actorRole == UserRole.USER && !assignee.getId().equals(actorUserId)) {
-            throw new IllegalStateException("본인 Task만 상태 변경할 수 있습니다");
-        }
-        this.taskState = nextStatus;
-    }
-
-    @PrePersist
-    @PreUpdate
-    private void validatePeriod() {
-        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("종료일은 시작일보다 빠를 수 없습니다");
-        }
-    }
-}
-
-
+public static Task create(...)
+public void update(...)
+public void changeStatus(TaskStatus newStatus)
+public boolean isOverdue()
 ```
 
-### 4.4 TaskAssignment Entity
+### 4.4 LeaveRequest Entity
 
-#### 4.4.1 기본 정보
-```java
-@Entity
-@Table(name = "task_assignments", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"task_id", "user_id"})
-})
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
-public class TaskAssignment extends BaseEntity {
-    // 필드 정의 (아래 상세 명세 참조)
-}
-```
-
-#### 4.4.2 필드 상세 명세
+#### 4.4.1 필드 상세 명세
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|-------------|--------|----------|------|----------------|
-| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 기본키 | 시스템 자동 생성 |
-| **task** | `Task` | `task_id` | FK, NOT NULL | 업무 FK | 필수 참조 |
-| **user** | `User` | `user_id` | FK, NOT NULL | 담당자 ID | 필수 참조 |
+|--------|-------------|--------|----------|------|---------------|
+| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 결재 식별자 | 시스템 자동 생성 |
+| **requester** | `User` | `requester_id` | FK, NOT NULL | 신청자 | 필수 |
+| **approver** | `User` | `approver_id` | FK, NULL 허용 | 승인자 | 처리 시 입력 |
+| **appType** | `LeaveType` | `app_type` | NOT NULL, ENUM | 신청 유형 | ANNUAL/HALF_* |
+| **startDate** | `LocalDate` | `start_date` | NOT NULL | 시작일 | 종료일 이전 |
+| **endDate** | `LocalDate` | `end_date` | NOT NULL | 종료일 | 시작일 이후 |
+| **usedDays** | `BigDecimal` | `used_days` | NOT NULL | 사용 일수 | 서버 계산 |
+| **appStatus** | `LeaveStatus` | `app_status` | NOT NULL, ENUM | 상태 | PENDING/APPROVED/REJECTED |
+| **requestReason** | `String` | `request_reason` | LENGTH(500) | 신청 사유 | 선택 입력 |
+| **rejectReason** | `String` | `reject_reason` | LENGTH(500) | 반려 사유 | 반려 시 필수 |
 
-#### 4.4.3 연관관계 매핑
+#### 4.4.2 핵심 메서드
 ```java
-@Entity
-@Table(name = "task_assignments", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"task_id", "user_id"})
-})
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Getter
-public class TaskAssignment extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id", nullable = false)
-    private Task task;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-}
+public void approve(User approver)
+public void reject(User approver, String reason)
+public void calculateUsedDays(List<LocalDate> holidayList)
 ```
 
----
-
-### 4.5 Approval Entity (LeaveRequest)
+### 4.5 OvertimeRequest Entity
 
 #### 4.5.1 필드 상세 명세
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|-------------|--------|----------|------|---------------|
-| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 결재 식별자 | 시스템 자동 생성 |
-| **requester** | `User` | `requester_id` | FK, NOT NULL | 기안자 | 필수 참조 |
-| **approver** | `User` | `approver_id` | FK, NULL 허용 | 결재자 | 처리 시 입력 |
-| **appType** | `LeaveType` | `app_type` | NOT NULL, ENUM | 결재 유형 | ANNUAL, HALF_MORNING, HALF_AFTERNOON |
-| **startDate** | `LocalDate` | `start_date` | NOT NULL | 휴가 시작일 | 필수 입력 |
-| **endDate** | `LocalDate` | `end_date` | NOT NULL | 휴가 종료일 | 시작일 이후 |
-| **usedDays** | `BigDecimal` | `used_days` | NOT NULL, scale=1 | 실제 차감 일수 | 서버 계산 |
-| **appStatus** | `LeaveStatus` | `app_status` | NOT NULL, ENUM | 결재 상태 | PENDING, APPROVED, REJECTED |
-| **requestReason** | `String` | `request_reason` | LENGTH(500) | 신청 사유 | 신청 시 선택 입력 |
-| **rejectReason** | `String` | `reject_reason` | LENGTH(500) | 반려 사유 | 반려 시 필수 |
+| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 특근 식별자 | 시스템 자동 생성 |
+| **requester** | `User` | `requester_id` | FK, NOT NULL | 신청자 | 필수 |
+| **approver** | `User` | `approver_id` | FK, NULL 허용 | 처리자 | 승인/반려 시 설정 |
+| **overtimeDate** | `LocalDate` | `overtime_date` | NOT NULL | 특근 일자 | 주말 신청만 허용 |
+| **startTime** | `LocalTime` | `start_time` | NOT NULL | 시작 시간 | 종료시간 이전 |
+| **endTime** | `LocalTime` | `end_time` | NOT NULL | 종료 시간 | 시작시간 이후 |
+| **reason** | `String` | `reason` | LENGTH(500) | 사유 | 선택 |
+| **status** | `OvertimeStatus` | `status` | NOT NULL, ENUM | 상태 | PENDING/APPROVED/REJECTED |
 
-#### 4.5.2 핵심 비즈니스 메서드
-- `approve(User approver)`: `PENDING` 상태에서 승인 처리
-- `reject(User approver, String reason)`: `PENDING` 상태에서 반려 처리
-- `calculateUsedDays(List<LocalDate> holidayList)`: 반차(0.5) 또는 평일 수 기준 일수 계산
+#### 4.5.2 핵심 메서드
+```java
+public void approve(User approver)
+public void reject(User approver)
+```
 
 ### 4.6 Attendance Entity
 
@@ -375,34 +226,42 @@ public class TaskAssignment extends BaseEntity {
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|-------------|--------|----------|------|---------------|
 | **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 근태 식별자 | 시스템 자동 생성 |
-| **user** | `User` | `user_id` | FK, NOT NULL | 사용자 참조 | 필수 참조 |
-| **workDate** | `LocalDate` | `work_date` | NOT NULL | 근무 일자 | 사용자+일자 유니크 |
-| **clockInTime** | `LocalTime` | `clock_in_time` | NULL 허용 | 출근 시간 | 선택 입력 |
-| **clockOutTime** | `LocalTime` | `clock_out_time` | NULL 허용 | 퇴근 시간 | 선택 입력 |
-| **attStatus** | `AttendanceStatus` | `att_status` | NOT NULL, ENUM | 근태 상태 | NORMAL, LATE, ABSENT, LEAVE |
+| **user** | `User` | `user_id` | FK, NOT NULL | 사용자 | 필수 |
+| **workDate** | `LocalDate` | `work_date` | NOT NULL | 근무일 | 사용자+일자 유니크 |
+| **clockInTime** | `LocalTime` | `clock_in_time` | NULL 허용 | 출근시간 | 체크인 시 입력 |
+| **clockOutTime** | `LocalTime` | `clock_out_time` | NULL 허용 | 퇴근시간 | 체크아웃 시 입력 |
+| **attStatus** | `AttendanceStatus` | `att_status` | NOT NULL, ENUM | 근태 상태 | NORMAL/LATE/ABSENT/LEAVE |
 
-> 참고: 연차 총/사용/잔여 필드는 현재 `Attendance`가 아니라 `User` 엔티티에서 관리합니다.
+#### 4.6.2 핵심 메서드
+```java
+public static Attendance checkIn(User user, LocalDate workDate, LocalTime clockInTime)
+public void checkOut(LocalTime clockOutTime)
+public void updateAttendance(LocalTime clockInTime, LocalTime clockOutTime)
+```
 
-### 4.7 OvertimeRequest Entity
+### 4.7 ProjectMember Entity
 
 #### 4.7.1 필드 상세 명세
 | 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 |
 |--------|-------------|--------|----------|------|
-| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 특근 신청 식별자 |
-| **requester** | `User` | `requester_id` | FK, NOT NULL | 신청자 |
-| **approver** | `User` | `approver_id` | FK, NULL 허용 | 결재자 |
-| **overtimeDate** | `LocalDate` | `overtime_date` | NOT NULL | 특근 일자 |
-| **startTime** | `LocalTime` | `start_time` | NOT NULL | 시작 시각 |
-| **endTime** | `LocalTime` | `end_time` | NOT NULL | 종료 시각 |
-| **reason** | `String` | `reason` | LENGTH(500) | 신청 사유 |
-| **status** | `OvertimeStatus` | `status` | NOT NULL, ENUM | PENDING, APPROVED, REJECTED |
+| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 식별자 |
+| **project** | `Project` | `project_id` | FK, NOT NULL | 프로젝트 |
+| **user** | `User` | `user_id` | FK, NOT NULL | 배정 사용자 |
 
-#### 4.7.2 비즈니스 규칙
-- 평일 특근 신청은 불가 (`INVALID_OVERTIME_DATE`)
-- 신청자 역할 기준 계층 결재 적용
-  - USER -> TEAM_LEADER/ADMIN
-  - TEAM_LEADER -> ADMIN
-  - ADMIN -> ADMIN 본인(셀프)
+유니크 제약:
+- `(project_id, user_id)`
+
+### 4.8 TaskAssignment Entity
+
+#### 4.8.1 필드 상세 명세
+| 필드명 | 데이터 타입 | 컬럼명 | 제약조건 | 설명 |
+|--------|-------------|--------|----------|------|
+| **id** | `Long` | `id` | PK, NOT NULL, AUTO_INCREMENT | 식별자 |
+| **task** | `Task` | `task_id` | FK, NOT NULL | 업무 |
+| **user** | `User` | `user_id` | FK, NOT NULL | 담당자 |
+
+유니크 제약:
+- `(task_id, user_id)`
 
 ---
 
@@ -411,74 +270,41 @@ public class TaskAssignment extends BaseEntity {
 ### 5.1 UserRole
 ```java
 public enum UserRole {
-    USER("일반 사용자"),
-    TEAM_LEADER("팀장"),
-    ADMIN("관리 소장");
-
-    private final String displayName;
-
-    public boolean isTopManager() { return this == ADMIN; }
-    public boolean isTeamLeader() { return this == TEAM_LEADER; }
-    public boolean isGeneralUser() { return this == USER; }
+    USER,
+    TEAM_LEADER,
+    ADMIN
 }
 ```
 
-### 5.2 TaskStatus
+### 5.2 ProjectStatus
+```java
+public enum ProjectStatus {
+    READY,
+    PROGRESS,
+    DONE,
+    HOLD
+}
+```
+
+### 5.3 TaskStatus
 ```java
 public enum TaskStatus {
-    TODO("할 일"),
-    DOING("진행 중"),
-    DONE("완료");
-
-    private final String displayName;
-
-    TaskStatus(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public boolean isFinished() {
-        return this == DONE;
-    }
+    TODO,
+    DOING,
+    DONE
 }
 ```
 
-### 5.3 LeaveStatus
+### 5.4 LeaveStatus
 ```java
 public enum LeaveStatus {
-    PENDING("결재 대기"),
-    APPROVED("승인"),
-    REJECTED("반려");
-
-    private final String displayName;
-
-    LeaveStatus(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public boolean isClosed() {
-        return this == APPROVED || this == REJECTED;
-    }
+    PENDING,
+    APPROVED,
+    REJECTED
 }
 ```
 
-### 5.4 LeaveType
-```java
-public enum LeaveType {
-    ANNUAL("연차", new BigDecimal("1.0")),
-    HALF_MORNING("오전반차", new BigDecimal("0.5")),
-    HALF_AFTERNOON("오후반차", new BigDecimal("0.5"));
-
-    private final String displayName;
-    private final BigDecimal unitDays;
-
-    public BigDecimal getUnitDays() { return unitDays; }
-    public boolean isHalfDay() {
-        return this == HALF_MORNING || this == HALF_AFTERNOON;
-    }
-}
-```
-
-### 5.6 OvertimeStatus
+### 5.5 OvertimeStatus
 ```java
 public enum OvertimeStatus {
     PENDING,
@@ -494,34 +320,25 @@ public enum OvertimeStatus {
 ### 6.1 연관관계 매핑 규칙
 | 관계 유형 | 기본 전략 | 이유 | 예외 상황 |
 |----------|-----------|------|-----------|
-| **@ManyToOne** | LAZY | 성능 최적화 | 필수 조회는 Fetch Join으로 해결 |
-| **@OneToMany** | LAZY | N+1 문제 방지 | 소량 데이터만 제한적 조회 |
-| **@OneToOne** | LAZY | 일관성 유지 | 도메인상 강결합일 때 EAGER 검토 |
-| **@ManyToMany** | 사용 금지 | 복잡성 증가 | 중간 Entity(`ProjectMember`)로 대체 |
+| **@ManyToOne** | LAZY | 성능 최적화 | 명시적 Fetch Join 사용 |
+| **@OneToMany** | LAZY | N+1 문제 방지 | 필요한 경우 EntityGraph |
+| **@OneToOne** | 지양 | 도메인 단순화 | 필요 시 도입 |
+| **@ManyToMany** | 사용 금지 | 제약/확장 어려움 | 중간 매핑 엔티티 사용 |
 
 ### 6.2 Cascade 옵션 가이드
 ```java
-// 부모-자식 관계 (강한 연결)
-@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-private List<ProjectMember> members = new ArrayList<>();
+@OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<TaskAssignment> taskAssignments = new ArrayList<>();
 
-// 참조 관계 (약한 연결)
 @ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "assignee_id", nullable = false)
-private User assignee; // cascade 없음
+@JoinColumn(name = "project_id", nullable = false)
+private Project project;
 ```
 
 ### 6.3 양방향 연관관계 관리
 ```java
-// Project Entity에서
-public void addMember(ProjectMember member) {
-    members.add(member);
-    member.linkProject(this);
-}
-
-public void addTask(Task task) {
-    tasks.add(task);
-    task.linkProject(this);
+void addTaskAssignment(TaskAssignment taskAssignment) {
+    taskAssignments.add(taskAssignment);
 }
 ```
 
@@ -538,7 +355,6 @@ public abstract class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
     @CreatedDate
@@ -548,19 +364,6 @@ public abstract class BaseEntity {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BaseEntity that = (BaseEntity) o;
-        return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
 }
 ```
 
@@ -569,17 +372,6 @@ public abstract class BaseEntity {
 @Configuration
 @EnableJpaAuditing
 public class JpaAuditingConfig {
-
-    @Bean
-    public AuditorAware<String> auditorProvider() {
-        return () -> {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return Optional.of("SYSTEM");
-            }
-            return Optional.of(authentication.getName());
-        };
-    }
 }
 ```
 
@@ -589,29 +381,16 @@ public class JpaAuditingConfig {
 
 ### 8.1 N+1 문제 해결
 ```java
-// Repository에서 fetch join 사용
-public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
-
-    @Query("SELECT lr FROM LeaveRequest lr " +
-           "JOIN FETCH lr.requester r " +
-           "LEFT JOIN FETCH lr.approver a " +
-           "WHERE lr.status = :status")
-    List<LeaveRequest> findByStatusWithUsers(@Param("status") LeaveStatus status);
-
-    @EntityGraph(attributePaths = {"project", "assignee"})
-    List<Task> findByProjectId(Long projectId);
-}
+@Query("SELECT lr FROM LeaveRequest lr " +
+       "WHERE lr.appStatus = :appStatus " +
+       "AND lr.startDate <= :endDate " +
+       "AND lr.endDate >= :startDate")
+List<LeaveRequest> findOverlappingLeaves(...)
 ```
 
 ### 8.2 쿼리 최적화
 ```java
-// 페이징과 정렬
-@Query("SELECT t FROM Task t " +
-       "WHERE t.assignee.id = :userId " +
-       "ORDER BY t.createdAt DESC")
-Page<Task> findMyTasksOrderByCreatedAtDesc(
-    @Param("userId") Long userId,
-    Pageable pageable);
+Page<User> findAll(Specification<User> spec, Pageable pageable)
 ```
 
 ---
@@ -620,29 +399,21 @@ Page<Task> findMyTasksOrderByCreatedAtDesc(
 
 ### 9.1 Bean Validation 어노테이션
 ```java
-// Entity에서 사용
-@Email(message = "유효한 이메일 형식이어야 합니다")
-@Column(nullable = false, unique = true, length = 100)
-private String email;
+@NotBlank(message = "아이디는 필수입니다.")
+private String id;
 ```
 
 ### 9.2 데이터베이스 제약조건
 ```java
-@Entity
-@Table(name = "leave_requests")
-public class LeaveRequest extends BaseEntity {
+@Table(name = "attendances", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"user_id", "work_date"})
+})
+```
 
-    @PrePersist
-    @PreUpdate
-    private void validateConstraints() {
-        if (endDate != null && startDate != null && endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("종료일은 시작일보다 빠를 수 없습니다");
-        }
-        if (status == LeaveStatus.REJECTED && (rejectReason == null || rejectReason.isBlank())) {
-            throw new IllegalArgumentException("반려 사유는 필수입니다");
-        }
-    }
-}
+```java
+@Table(name = "task_assignments", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"task_id", "user_id"})
+})
 ```
 
 ---
@@ -651,46 +422,22 @@ public class LeaveRequest extends BaseEntity {
 
 ### 10.1 Entity 단위 테스트
 ```java
-@DisplayName("LeaveRequest Entity 테스트")
-class LeaveRequestTest {
-
+@DisplayName("Task 상태 변경 테스트")
+class TaskTest {
     @Test
-    @DisplayName("반려 상태 전환 시 반려 사유가 없으면 예외가 발생해야 한다")
-    void rejectWithoutReason_ShouldThrowException() {
-        // given
-        LeaveRequest request = createPendingRequest();
-        User approver = createAdminUser();
-
-        // when & then
-        assertThatThrownBy(() -> request.reject(approver, ""))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("반려 사유");
+    void changeStatus_shouldUpdateState() {
+        // given/when/then
     }
 }
 ```
 
-### 10.2 Repository 테스트
+### 10.2 Repository/통합 테스트
 ```java
-@DataJpaTest
-@DisplayName("TaskRepository 테스트")
-class TaskRepositoryTest {
-
-    @Autowired
-    private TaskRepository taskRepository;
-
-    @Test
-    @DisplayName("담당자 ID로 내 업무를 페이징 조회해야 한다")
-    void findMyTasksOrderByCreatedAtDesc_ShouldReturnPagedTasks() {
-        // given
-        Long userId = 1L;
-
-        // when
-        Page<Task> page = taskRepository.findMyTasksOrderByCreatedAtDesc(
-                userId, PageRequest.of(0, 10));
-
-        // then
-        assertThat(page).isNotNull();
-    }
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("integration")
+class CoreApiIntegrationTest {
+    // 로그인/사용자조회/연차승인/특근승인/캘린더/근태 통합 테스트
 }
 ```
 
@@ -700,58 +447,17 @@ class TaskRepositoryTest {
 
 ### 11.1 쿼리 성능 모니터링
 ```properties
-# application.properties - 쿼리 성능 모니터링 설정
-
-# DB 접속정보
 spring.datasource.url=jdbc:mariadb://localhost:3306/mini_erp
 spring.datasource.username=lab
 spring.datasource.password=lab
-spring.datasource.driverClassName=org.mariadb.jdbc.Driver
-
-# JPA 및 Hibernate 설정
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.generate_statistics=true
-logging.level.org.hibernate.SQL=debug
-logging.level.org.hibernate.orm.jdbc.bind=trace
 ```
 
 ---
 
-## 12. 0번 요구사항 반영 추가사항
-
-### 12.1 권한 요구사항 기반 엔티티 제약
-- `Task.changeStatus()`는 USER의 경우 `assignee == 로그인 사용자` 검증 필수
-- `Project` 조회 서비스는 USER 권한에서 `ProjectMember` 기반 본인 참여 프로젝트만 반환
-- `LeaveRequest` 조회 서비스는 USER 권한에서 `requester == 로그인 사용자` 조건 강제
-
-### 12.2 핵심 비즈니스 규칙 기반 DB 제약 강화
-- `ProjectMember(project_id, user_id)` 유니크 제약 필수
-- `Task` 생성 시 `assignee`가 해당 프로젝트 참여자인지 애플리케이션 레벨 검증 필수
-- `LeaveRequest(status=REJECTED)` 상태 전환 시 `reject_reason` NOT BLANK 검증 필수
-- 동일한 날짜에 중복으로 연차를 신청할 수 없도록 하는 DB/애플리케이션 제약 조건
-
-### 12.3 연차 승인 차감 트랜잭션 규칙 반영
-- 승인 처리 메서드와 `User.remainingAnnualLeave` 차감은 하나의 서비스 트랜잭션으로 처리
-- 차감 실패 시 `LeaveRequest.status=APPROVED` 반영도 롤백되어야 함
-
-### 12.4 캘린더/근태 요구사항 반영 메모
-- `Attendance`는 조회 중심 엔티티로 유지
-- 실제 출퇴근 기록 기능 포함 확정 시 아래 필드/메서드 활성화
-    - `clockInTime`, `clockOutTime`
-    - `checkIn()`, `checkOut()`
-
-### 12.5 MVP 포함 기능 엔티티 매핑표
-| MVP 기능 | 주요 Entity |
-|---|---|
-| 회원가입/로그인 | `User` |
-| 프로젝트 생성/조회 | `Project` |
-| 프로젝트 참여자 배정 | `ProjectMember` |
-| Task 생성/상태 변경 | `Task` |
-| 연차 신청/승인/반려 | `LeaveRequest` |
-| 승인 시 연차 차감 | `LeaveRequest`, `User` |
-| 업무 진행도 확인 | `Project`, `Task` |
-
----
-
-**문서 끝**
+## 12. 변경 이력 (현재 반영)
+- `request_reason` 컬럼 및 신청 사유 반영
+- 직책별 연차 정책(14/16/17/18/19) 반영
+- 연차 중복 신청 차단 정책 반영
+- `CurrentUserResolver`, `AccessPolicy`, Flyway 마이그레이션 전략 반영
