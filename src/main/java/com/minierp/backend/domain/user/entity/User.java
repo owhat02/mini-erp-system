@@ -61,9 +61,11 @@ public class User extends BaseEntity {
         this.assignRole = null;
         this.userRole = userRole;
         this.isActive = true;
-        this.totalAnnualLeave = BigDecimal.valueOf(15.0);
+
+        BigDecimal initialAnnualLeave = resolveInitialAnnualLeave(positionName);
+        this.totalAnnualLeave = initialAnnualLeave;
         this.usedAnnualLeave = BigDecimal.ZERO;
-        this.remainingAnnualLeave = BigDecimal.valueOf(15.0);
+        this.remainingAnnualLeave = initialAnnualLeave;
     }
 
     public static User create(String userName, String loginId, String userEmail, String encodedPassword, String positionName) {
@@ -97,5 +99,21 @@ public class User extends BaseEntity {
 
         this.usedAnnualLeave = this.usedAnnualLeave.add(usedDays);
         this.remainingAnnualLeave = this.remainingAnnualLeave.subtract(usedDays);
+    }
+
+    private static BigDecimal resolveInitialAnnualLeave(String positionName) {
+        if (positionName == null || positionName.isBlank()) {
+            return BigDecimal.valueOf(14.0);
+        }
+
+        String normalized = positionName.replace(" ", "").trim();
+        return switch (normalized) {
+            case "사원" -> BigDecimal.valueOf(14.0);
+            case "대리" -> BigDecimal.valueOf(16.0);
+            case "과장" -> BigDecimal.valueOf(17.0);
+            case "팀장" -> BigDecimal.valueOf(18.0);
+            case "관리소장", "관리자" -> BigDecimal.valueOf(19.0);
+            default -> BigDecimal.valueOf(14.0);
+        };
     }
 }
