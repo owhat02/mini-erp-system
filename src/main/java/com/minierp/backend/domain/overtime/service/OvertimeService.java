@@ -99,25 +99,39 @@ public class OvertimeService {
     /**
      * 특근 내역 조회 (권한별 필터링)
      * - USER: 본인 내역만
-     * - TEAM_LEADER/ADMIN: 전체 내역
+     * - TEAM_LEADER/ADMIN: /all 엔드포인트 사용
      */
     public List<OvertimeResponseDto> getOvertimeRequests(Long accessorUserId) {
         User accessor = getUserById(accessorUserId);
 
-        if (!accessPolicy.canViewAllRequests(accessor.getUserRole())) {
-            return overtimeRequestRepository.findByRequester_Id(accessor.getId()).stream()
-                    .map(OvertimeResponseDto::from)
-                    .collect(Collectors.toList());
+        // USER가 아니면 권한 거부 (ADMIN/TEAM_LEADER는 /all 사용)
+        if (!accessor.getUserRole().isGeneralUser()) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "관리자는 /api/v1/overtime/all 엔드포인트를 사용해주세요.");
         }
 
-        return overtimeRequestRepository.findAll().stream()
+        // USER는 본인 내역만 반환
+        return overtimeRequestRepository.findByRequester_Id(accessor.getId()).stream()
                 .map(OvertimeResponseDto::from)
                 .collect(Collectors.toList());
     }
 
-    // 기존 /my API 호환
-    public List<OvertimeResponseDto> getMyOvertimeRequests(Long userId) {
-        return getOvertimeRequests(userId);
+    /**
+     * 특근 전체 내역 조회 (관리자용)
+     * - ADMIN/TEAM_LEADER만 접근 가능
+     * - 항상 전체 내역 반환
+     */
+    public List<OvertimeResponseDto> getAllOvertimeRequestsForAdmin(Long userId) {
+        User user = getUserById(userId);
+
+        // ADMIN/TEAM_LEADER만 접근 가능
+        if (!accessPolicy.canViewAllRequests(user.getUserRole())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "관리자 권한이 필요합니다.");
+        }
+
+        // 항상 전체 내역 반환
+        return overtimeRequestRepository.findAll().stream()
+                .map(OvertimeResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     /**

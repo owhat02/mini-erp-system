@@ -452,8 +452,45 @@ Authorization: Bearer {JWT_TOKEN}
 ```yaml
 GET /api/v1/overtime/{id}
 GET /api/v1/overtime/list
+Authorization: Bearer {JWT_TOKEN}
+```
+
+#### 4.8.4 특근 전체 내역 조회 (ADMIN/TEAM_LEADER)
+```yaml
+GET /api/v1/overtime/all
+Authorization: Bearer {JWT_TOKEN}
+```
+
+요청 예시:
+```
+GET http://localhost:8080/api/v1/overtime/all
+Authorization: Bearer {accessToken}
+```
+
+응답 예시 (권한별 필터링):
+- **ADMIN**: 모든 특근 신청 내역
+- **TEAM_LEADER**: 본인 팀의 특근 신청 내역 (구현에 따라)
+- **USER**: 403 Forbidden
+
+---
+
+#### 4.8.5 특근 단건 조회
+```yaml
+GET /api/v1/overtime/{id}
+Authorization: Bearer {JWT_TOKEN}
+```
+
+#### 4.8.6 특근 목록 조회
+```yaml
+GET /api/v1/overtime/list
+Authorization: Bearer {JWT_TOKEN}
+```
+
+#### 4.8.7 특근 목록 조회(호환)
+```yaml
 GET /api/v1/overtime/my
 Authorization: Bearer {JWT_TOKEN}
+(@Deprecated)
 ```
 
 ### 4.9 대시보드 API
