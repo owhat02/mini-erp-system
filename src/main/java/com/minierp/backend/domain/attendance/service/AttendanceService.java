@@ -113,7 +113,16 @@ public class AttendanceService {
                 .filter(a -> a.getAttStatus() == AttendanceStatus.LEAVE)
                 .count();
 
-        return AttendanceSummaryDto.of(workDaysCount, clockInTimes, clockOutTimes, leaveUsedCount);
+        List<AttendanceSummaryDto.AttendanceRecordDto> attendanceRecords = attendances.stream()
+                .map(a -> AttendanceSummaryDto.AttendanceRecordDto.of(
+                        a.getWorkDate(),
+                        a.getClockInTime() != null ? a.getClockInTime().toString() : null,
+                        a.getClockOutTime() != null ? a.getClockOutTime().toString() : null,
+                        a.getAttStatus().name()
+                ))
+                .collect(Collectors.toList());
+
+        return AttendanceSummaryDto.of(workDaysCount, clockInTimes, clockOutTimes, leaveUsedCount, attendanceRecords);
     }
 
     private User getUserById(Long userId) {
