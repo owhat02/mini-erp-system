@@ -35,10 +35,11 @@ import java.util.stream.Collectors;
 public class ApprovalService {
 
     private static final Map<String, Integer> POSITION_POLICY = Map.of(
-            "사원", 15,
+            "사원", 14,
             "대리", 16,
             "과장", 17,
-            "팀장", 18
+            "팀장", 18,
+            "관리소장", 19
     );
 
     // 공휴일 연동 전까지는 고정 공휴일 + 설정 공휴일(app.holidays)을 함께 사용

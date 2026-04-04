@@ -27,6 +27,9 @@ public class User extends BaseEntity {
     @Column(name = "user_pw", nullable = false, length = 255)
     private String userPw;
 
+    @Column(name = "department_code", nullable = false, length = 2)
+    private String departmentCode;
+
     @Column(name = "position_name", nullable = false, length = 30)
     private String positionName;
 
@@ -52,26 +55,30 @@ public class User extends BaseEntity {
     @Column(name = "login_id", nullable = false, unique = true, length = 50)
     private String loginId;
 
-    private User(String userName, String loginId, String userEmail, String userPw, String positionName, UserRole userRole) {
+    private User(String userName, String loginId, String userEmail, String userPw, String departmentCode, String positionName, UserRole userRole) {
         this.userName = userName;
         this.loginId = loginId;
         this.userEmail = userEmail;
         this.userPw = userPw;
+        this.departmentCode = departmentCode;
         this.positionName = positionName;
         this.assignRole = null;
         this.userRole = userRole;
         this.isActive = true;
-        this.totalAnnualLeave = BigDecimal.valueOf(15.0);
+
+        BigDecimal initialAnnualLeave = resolveInitialAnnualLeave(positionName);
+        this.totalAnnualLeave = initialAnnualLeave;
         this.usedAnnualLeave = BigDecimal.ZERO;
-        this.remainingAnnualLeave = BigDecimal.valueOf(15.0);
+        this.remainingAnnualLeave = initialAnnualLeave;
     }
 
-    public static User create(String userName, String loginId, String userEmail, String encodedPassword, String positionName) {
-        return new User(userName, loginId, userEmail, encodedPassword, positionName, UserRole.USER);
+    public static User create(String userName, String loginId, String userEmail, String encodedPassword, String departmentCode, String positionName) {
+        return new User(userName, loginId, userEmail, encodedPassword, departmentCode, positionName, UserRole.USER);
     }
 
-    public void updateProfile(String userName, String positionName) {
+    public void updateProfile(String userName, String departmentCode, String positionName) {
         this.userName = userName;
+        this.departmentCode = departmentCode;
         this.positionName = positionName;
     }
 
@@ -97,5 +104,21 @@ public class User extends BaseEntity {
 
         this.usedAnnualLeave = this.usedAnnualLeave.add(usedDays);
         this.remainingAnnualLeave = this.remainingAnnualLeave.subtract(usedDays);
+    }
+
+    private static BigDecimal resolveInitialAnnualLeave(String positionName) {
+        if (positionName == null || positionName.isBlank()) {
+            return BigDecimal.valueOf(14.0);
+        }
+
+        String normalized = positionName.replace(" ", "").trim();
+        return switch (normalized) {
+            case "사원" -> BigDecimal.valueOf(14.0);
+            case "대리" -> BigDecimal.valueOf(16.0);
+            case "과장" -> BigDecimal.valueOf(17.0);
+            case "팀장" -> BigDecimal.valueOf(18.0);
+            case "관리소장", "관리자" -> BigDecimal.valueOf(19.0);
+            default -> BigDecimal.valueOf(14.0);
+        };
     }
 }

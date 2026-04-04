@@ -84,6 +84,22 @@ public class OvertimeController {
         return ResponseEntity.ok(ApiResponse.success(response, "특근 내역 조회가 완료되었습니다."));
     }
 
+    /**
+     * 🚩 [추가] 관리자/팀장용 전체 특근 내역 조회
+     * GET /api/v1/overtime/all
+     * 프론트엔드 대시보드에서 호출하는 엔드포인트입니다.
+     * ADMIN/TEAM_LEADER만 접근 가능
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<OvertimeResponseDto>>> getAllOvertimeRequests(
+            Authentication authentication) {
+
+        Long userId = currentUserResolver.resolveUserId(authentication);
+        // ADMIN/TEAM_LEADER만 접근 가능하도록 필터링
+        List<OvertimeResponseDto> response = overtimeService.getAllOvertimeRequestsForAdmin(userId);
+        return ResponseEntity.ok(ApiResponse.success(response, "전체 특근 내역 조회가 완료되었습니다."));
+    }
+
     @Deprecated
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<OvertimeResponseDto>>> getMyOvertimeRequests(Authentication authentication) {
