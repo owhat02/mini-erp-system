@@ -1,5 +1,7 @@
 package com.minierp.backend.domain.user.controller;
 
+import com.minierp.backend.domain.project.dto.LeaderSummaryDto;
+import com.minierp.backend.domain.project.service.ProjectService;
 import com.minierp.backend.domain.user.dto.UserListResponseDto;
 import com.minierp.backend.domain.user.dto.UserResponseDto;
 import com.minierp.backend.domain.user.dto.UserRoleUpdateRequestDto;
@@ -22,12 +24,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final ProjectService projectService;
     private final CurrentUserResolver currentUserResolver;
 
     @GetMapping
@@ -42,7 +47,13 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(response, "목록 조회가 완료되었습니다"));
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping("/team-leaders")
+    public ResponseEntity<ApiResponse<List<LeaderSummaryDto>>> getTeamLeaders(Authentication authentication) {
+        List<LeaderSummaryDto> response = projectService.getLeaders(currentUserResolver.resolveUserRole(authentication));
+        return ResponseEntity.ok(ApiResponse.success(response, "팀장 목록 조회가 완료되었습니다"));
+    }
+
+    @GetMapping("/{userId:\\d+}")
     public ResponseEntity<ApiResponse<UserResponseDto>> getUser(@PathVariable Long userId, Authentication authentication) {
         UserResponseDto response = userService.getUser(
                 userId,
@@ -51,7 +62,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping("/{userId:\\d+}")
     public ResponseEntity<ApiResponse<UserResponseDto>> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UserUpdateRequestDto requestDto,
@@ -65,7 +76,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(response, "사용자 정보가 수정되었습니다"));
     }
 
-    @PatchMapping("/{userId}/role")
+    @PatchMapping("/{userId:\\d+}/role")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserRoleUpdateResponseDto>> updateUserRole(
             @PathVariable Long userId,
