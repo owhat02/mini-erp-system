@@ -450,7 +450,7 @@ Authorization: Bearer {JWT_TOKEN}
 
 #### 4.8.2 특근 신청 취소
 ```yaml
-DELETE /api/v1/overtime/{id}
+PATCH /api/v1/overtime/{id}/cancel
 Authorization: Bearer {JWT_TOKEN}
 ```
 - 본인이 신청한 `PENDING` 상태의 건만 취소 가능
@@ -459,13 +459,6 @@ Authorization: Bearer {JWT_TOKEN}
 ```yaml
 PATCH /api/v1/overtime/{id}/approve
 PATCH /api/v1/overtime/{id}/reject
-Authorization: Bearer {JWT_TOKEN}
-```
-
-#### 4.8.3 특근 조회
-```yaml
-GET /api/v1/overtime/{id}
-GET /api/v1/overtime/list
 Authorization: Bearer {JWT_TOKEN}
 ```
 
