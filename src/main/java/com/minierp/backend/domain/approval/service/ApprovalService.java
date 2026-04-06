@@ -99,12 +99,12 @@ public class ApprovalService {
                 .requestReason(dto.getRequestReason())
                 .build();
 
-        // [버그 수정] 공휴일 정보를 반영하여 usedDays 재계산
         leaveRequest.calculateUsedDays(getObservedHolidays(startDate.getYear()).stream().toList());
 
         LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
         return LeaveRequestResponseDto.from(savedRequest);
     }
+
 
     /**
      * 연차 승인 (Absolute Rule: @Transactional 내에서 상태 변경 및 User 연차 차감)

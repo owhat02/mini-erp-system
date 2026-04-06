@@ -48,7 +48,6 @@ public class OvertimeRequest extends BaseEntity {
         this.startTime = startTime;
         this.endTime = endTime;
         this.reason = reason;
-        this.status = OvertimeStatus.PENDING;
     }
 
     public void approve(User approver) {

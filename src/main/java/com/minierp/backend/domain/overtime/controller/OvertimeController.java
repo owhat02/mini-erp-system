@@ -36,6 +36,19 @@ public class OvertimeController {
     }
 
     /**
+     * 특근 신청 취소
+     * DELETE /api/v1/overtime/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateOvertimeStatus(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        overtimeService.cancelOvertime(id, currentUserResolver.resolveUserId(authentication));
+        return ResponseEntity.ok(ApiResponse.successMessage("특근 신청이 취소되었습니다."));
+    }
+
+    /**
      * 특근 승인
      * PATCH /api/v1/overtime/{id}/approve
      */
