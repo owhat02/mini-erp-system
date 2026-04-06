@@ -103,7 +103,9 @@ public class DashboardService {
             doneTaskCount = projectIds.isEmpty() ? 0L : taskRepository.countByProjectIdInAndTaskStatus(projectIds, TaskStatus.DONE);
         }
 
-        double taskCompletionRate = totalTaskCount == 0 ? 0.0 : (doneTaskCount * 100.0) / totalTaskCount;
+        double taskCompletionRate = totalTaskCount == 0
+                ? 0.0
+                : Math.round((doneTaskCount * 100.0) / totalTaskCount * 10) / 10.0;
         long pendingApprovalCount = leaveRequestRepository.countByAppStatus(LeaveStatus.PENDING);
 
         List<LeaveRequestResponseDto> pendingApprovals = leaveRequestRepository.findAll().stream()

@@ -20,7 +20,9 @@ public class DashboardResponseDto {
         long doingCount = taskStatusStats.getOrDefault(TaskStatus.DOING, 0L);
         long doneCount = taskStatusStats.getOrDefault(TaskStatus.DONE, 0L);
         long totalCount = todoCount + doingCount + doneCount;
-        double progressRate = totalCount == 0 ? 0.0 : (doneCount * 100.0) / totalCount;
+        double progressRate = totalCount == 0
+                ? 0.0
+                : Math.round((doneCount * 100.0) / totalCount * 10) / 10.0;
 
         return new DashboardResponseDto(todoCount, doingCount, doneCount, progressRate);
     }
