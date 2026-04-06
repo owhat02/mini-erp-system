@@ -66,4 +66,14 @@ public class OvertimeRequest extends BaseEntity {
         this.approver = approver;
         this.status = OvertimeStatus.REJECTED;
     }
+
+    /**
+     * 특근 취소 처리 (Soft Cancel)
+     */
+    public void cancel() {
+        if (this.status != OvertimeStatus.PENDING) {
+            throw new IllegalStateException("이미 처리된 신청은 취소할 수 없습니다. (현재 상태: " + status.getDisplayName() + ")");
+        }
+        this.status = OvertimeStatus.CANCELED;
+    }
 }

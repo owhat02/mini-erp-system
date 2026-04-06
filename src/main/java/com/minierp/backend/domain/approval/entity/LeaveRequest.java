@@ -91,6 +91,16 @@ public class LeaveRequest extends BaseEntity {
     }
 
     /**
+     * 연차 취소 처리 (Soft Cancel)
+     */
+    public void cancel() {
+        if (this.appStatus != LeaveStatus.PENDING) {
+            throw new IllegalStateException("이미 처리된 신청은 취소할 수 없습니다. (현재 상태: " + appStatus.getDisplayName() + ")");
+        }
+        this.appStatus = LeaveStatus.CANCELED;
+    }
+
+    /**
      * 주말을 제외한 실제 연차 소진 일수를 계산 (반차는 0.5 고정)
      */
     public void calculateUsedDays(List<LocalDate> holidayList) {

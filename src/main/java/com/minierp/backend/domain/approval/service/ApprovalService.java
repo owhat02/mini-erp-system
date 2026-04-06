@@ -72,6 +72,11 @@ public class ApprovalService {
         User requester = userRepository.findById(requesterUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 반차 날짜 서버 단 검증
+        if (dto.getAppType().isHalfDay() && !dto.getStartDate().equals(dto.getEndDate())) {
+            throw new BusinessException(ErrorCode.INVALID_HALF_LEAVE_DATE);
+        }
+
         if (containsWeekendOrHoliday(dto.getStartDate(), dto.getEndDate())) {
             throw new BusinessException(ErrorCode.LEAVE_DATE_NOT_WORKING_DAY);
         }
@@ -93,6 +98,27 @@ public class ApprovalService {
 
         LeaveRequest savedRequest = leaveRequestRepository.save(leaveRequest);
         return LeaveRequestResponseDto.from(savedRequest);
+    }
+
+    /**
+     * 연차 신청 취소 (Soft Cancel)
+     */
+    @Transactional
+    public void cancelLeave(Long requestId, Long userId) {
+        LeaveRequest leaveRequest = leaveRequestRepository.findById(requestId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.LEAVE_NOT_FOUND));
+
+        // [보안 규칙 B] 본인 확인 검증
+        if (!leaveRequest.getRequester().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 신청한 내역만 취소할 수 있습니다.");
+        }
+
+        // [보안 규칙 A] 상태 검증 (PENDING일 때만 취소 가능)
+        if (leaveRequest.getAppStatus() != LeaveStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_LEAVE_CANCEL_STATUS);
+        }
+
+        leaveRequest.cancel();
     }
 
     /**

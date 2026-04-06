@@ -39,6 +39,19 @@ public class ApprovalController {
     }
 
     /**
+     * 연차 신청 취소
+     * DELETE /api/v1/leave/{requestId}
+     */
+    @DeleteMapping("/{requestId}")
+    public ResponseEntity<ApiResponse<Void>> updateLeaveStatus(
+            @PathVariable Long requestId,
+            Authentication authentication) {
+
+        approvalService.cancelLeave(requestId, currentUserResolver.resolveUserId(authentication));
+        return ResponseEntity.ok(ApiResponse.successMessage("연차 신청이 취소되었습니다."));
+    }
+
+    /**
      * 연차 승인
      * PATCH /api/v1/leave/{requestId}/approve
      */

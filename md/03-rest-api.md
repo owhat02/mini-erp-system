@@ -405,21 +405,28 @@ Authorization: Bearer {JWT_TOKEN}
 }
 ```
 
-#### 4.7.2 연차 승인/반려
+#### 4.7.2 연차 신청 취소
+```yaml
+DELETE /api/v1/leave/{requestId}
+Authorization: Bearer {JWT_TOKEN}
+```
+- 본인이 신청한 `PENDING` 상태의 건만 취소 가능
+
+#### 4.7.3 연차 승인/반려
 ```yaml
 PATCH /api/v1/leave/{requestId}/approve
 PATCH /api/v1/leave/{requestId}/reject
 Authorization: Bearer {JWT_TOKEN}
 ```
 
-#### 4.7.3 연차 내역 조회
+#### 4.7.4 연차 내역 조회
 ```yaml
 GET /api/v1/leave/my
 GET /api/v1/leave/all
 Authorization: Bearer {JWT_TOKEN}
 ```
 
-#### 4.7.4 연차 잔여/정책 조회
+#### 4.7.5 연차 잔여/정책 조회
 ```yaml
 GET /api/v1/leave/balance
 GET /api/v1/leave/policy
@@ -441,7 +448,14 @@ POST /api/v1/overtime
 Authorization: Bearer {JWT_TOKEN}
 ```
 
-#### 4.8.2 특근 승인/반려
+#### 4.8.2 특근 신청 취소
+```yaml
+DELETE /api/v1/overtime/{id}
+Authorization: Bearer {JWT_TOKEN}
+```
+- 본인이 신청한 `PENDING` 상태의 건만 취소 가능
+
+#### 4.8.3 특근 승인/반려
 ```yaml
 PATCH /api/v1/overtime/{id}/approve
 PATCH /api/v1/overtime/{id}/reject
