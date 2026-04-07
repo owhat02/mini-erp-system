@@ -8,43 +8,43 @@ const ProjectPage = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // [2026-03-28] 설계서 v2.0 기준 실제 API 연동
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // 실제 API 호출 (제공해주신 JSON 구조 반영)
+        const res = await axios.get('/projects'); 
+        
+        if (res.data && res.data.success) {
+          const projectList = res.data.data;
+          
+          // 1. 프로젝트 요약 정보 (목록 중 첫 번째 프로젝트를 대표로 표시)
+          if (projectList.length > 0) {
+            const mainProject = projectList[0];
+            setProjectProgress({
+              title: mainProject.title,
+              period: `${mainProject.startDate} ~ ${mainProject.endDate}`,
+              members: mainProject.memberCount,
+              progressRate: mainProject.progressRate,
+              doneTasks: Math.round((mainProject.progressRate / 100) * mainProject.taskCount),
+              totalTasks: mainProject.taskCount
+            });
+          }
 
-  // [2026-03-28] 설계서 v2.0 기준 변수명 적용
-useEffect(() => {
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // 1. 프로젝트 진행도 가져오기 (4.2.10 API 매핑)
-      // const resProgress = await axios.get('/projects/101/progress');
-      // setProjectProgress(resProgress.data.data); // 설계서의 공통 응답 구조 적용
-
-      // 2. 내 업무 목록 가져오기 (4.2.4 API 매핑)
-      // const resTasks = await axios.get('/tasks?assignee=me');
-      // setTasks(resTasks.data.data.content); // 페이지네이션 content 추출
-
-      // 현재는 테스트용 가짜 데이터 (설계서와 필드명 일치시킴)
-      setTimeout(() => {
-        setProjectProgress({
-          title: "사내 그룹웨어 개발", // 4.2.1
-          progressRate: 65,            // 4.2.10
-          doneTasks: 13,               // 4.2.10
-          totalTasks: 20               // 4.2.10
-        });
-        setTasks([
-          { id: 1, taskTitle: "로그인 API", state: "완료", priority: "높음", endDate: "2025.03.10" },
-          { id: 2, taskTitle: "사용자 대시보드 UI 개발", state: "진행중", priority: "높음", endDate: "2025.03.26" },
-          { id: 3, taskTitle: "연차 결제 로직 검토", state: "대기", priority: "중간", endDate: "2025.03.31" },
-          { id: 4, taskTitle: "단위 테스트 코드 작성", state: "대기", priority: "낮음", endDate: "2025.04.10" },
-          { id: 5, taskTitle: "배포 환경 설정", state: "대기", priority: "낮음", endDate: "2025.04.25" },
-        ]);
+          // 2. 업무 리스트 (프로젝트 목록 데이터를 업무 목록 UI에 매핑)
+          // 실제 Task API가 따로 있다면 axios.get('/tasks') 형태로 교체 가능합니다.
+          setTasks(projectList); 
+        }
+      } catch (error) {
+        console.error("데이터 로드 실패", error);
+      } finally {
         setLoading(false);
-      }, 500);
-    } catch (error) {
-      console.error("데이터 로드 실패", error);
-    }
-  };
-  fetchData();
-}, []);
+      }
+    };
+    fetchData();
+  }, []);
+
   if (loading) return (
     <div className="flex h-64 items-center justify-center">
       <Loader2 className="animate-spin text-blue-600" size={40} />
@@ -110,18 +110,18 @@ useEffect(() => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {tasks.map(task => (
-                <tr key={task.id} className="hover:bg-slate-50/30 transition-colors group">
-                  <td className="p-5 pl-8 font-bold text-slate-700">{task.taskTitle}</td>
+                <tr key={task.projectId || task.id} className="hover:bg-slate-50/30 transition-colors group">
+                  <td className="p-5 pl-8 font-bold text-slate-700">{task.title || task.taskTitle}</td>
                   <td className="p-5 text-center">
-                    <StatusBadge state={task.state} />
+                    <StatusBadge state={task.status === "PROGRESS" ? "진행중" : task.state} />
                   </td>
                   <td className="p-5 text-center">
-                    <PriorityBadge priority={task.priority} />
+                    <PriorityBadge priority={task.priority === "HIGH" ? "높음" : (task.priority === "MEDIUM" ? "중간" : "낮음")} />
                   </td>
                   <td className="p-5 text-center text-slate-400 font-bold text-xs">{task.endDate}</td>
                   <td className="p-5 text-right pr-8">
                     <select className="text-[11px] font-bold border border-slate-200 rounded-lg px-2 py-1 outline-none bg-white text-slate-600 cursor-pointer">
-                      <option>{task.state} ⌵</option>
+                      <option>{task.status === "PROGRESS" ? "진행중" : task.state} ⌵</option>
                     </select>
                   </td>
                 </tr>
@@ -134,24 +134,22 @@ useEffect(() => {
   );
 };
 
-// 이미지와 동일한 상태 뱃지
 const StatusBadge = ({ state }) => {
   const styles = {
     "완료": "bg-emerald-50 text-emerald-600",
     "진행중": "bg-blue-50 text-blue-600",
     "대기": "bg-amber-50 text-amber-600"
   };
-  return <span className={`px-2.5 py-1 rounded-md text-[10px] font-black ${styles[state]}`}>{state}</span>;
+  return <span className={`px-2.5 py-1 rounded-md text-[10px] font-black ${styles[state] || "bg-slate-50 text-slate-500"}`}>{state}</span>;
 };
 
-// 이미지와 동일한 우선순위 뱃지
 const PriorityBadge = ({ priority }) => {
   const styles = {
     "높음": "bg-red-50 text-red-500",
     "중간": "bg-orange-50 text-orange-500",
     "낮음": "bg-slate-100 text-slate-500"
   };
-  return <span className={`px-2 py-0.5 rounded text-[10px] font-black ${styles[priority]}`}>{priority}</span>;
+  return <span className={`px-2 py-0.5 rounded text-[10px] font-black ${styles[priority] || "bg-slate-50 text-slate-500"}`}>{priority}</span>;
 };
 
 export default ProjectPage;
