@@ -81,13 +81,15 @@ const DashboardHome = ({ user, setActiveMenu }) => {
   const [myProjects, setMyProjects] = useState([]);
   const [myTasks, setMyTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leave, setLeave] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [projectRes, taskRes] = await Promise.all([
+      const [projectRes, taskRes, leaveRes] = await Promise.all([
         api.get('/projects'),
-        api.get('/tasks')
+        api.get('/tasks'),
+        api.get('/leave/balance') // 추가
       ]);
 
       const allProjects = projectRes.data?.data || [];
@@ -95,6 +97,10 @@ const DashboardHome = ({ user, setActiveMenu }) => {
 
       setMyProjects(allProjects);
       setMyTasks(allTasks);
+      // 3. [추가] 연차 데이터가 잘 왔다면 상태 업데이트!
+    if (leaveRes.data?.success) {
+      setLeave(leaveRes.data.data.remainingAnnualLeave);
+    }
       console.log("프로젝트 데이터:", allProjects);
       console.log("업무 데이터:", allTasks);
     } catch (error) {
@@ -112,7 +118,7 @@ const DashboardHome = ({ user, setActiveMenu }) => {
     projectCount: myProjects.length,
     completedTasks: myTasks.filter(t => t.taskState === 'DONE').length,
     pendingTasks: myTasks.filter(t => t.taskState === 'TODO').length,
-    leave: user?.remainingLeave || 9.5
+    leave: leave//user?.remainingAnnualLeave
   };
 
   if (loading) return <div className="p-20 text-center text-gray-400">데이터 로드 중...</div>;
