@@ -73,7 +73,29 @@ public class User extends BaseEntity {
     }
 
     public static User create(String userName, String loginId, String userEmail, String encodedPassword, String departmentCode, String positionName) {
-        return new User(userName, loginId, userEmail, encodedPassword, departmentCode, positionName, UserRole.USER);
+        return new User(
+                userName,
+                loginId,
+                userEmail,
+                encodedPassword,
+                departmentCode,
+                positionName,
+                resolveSignupRole(positionName)
+        );
+    }
+
+    // 회원가입 시에는 USER/TEAM_LEADER만 자동 부여하고 ADMIN은 별도 승격으로 유지
+    private static UserRole resolveSignupRole(String positionName) {
+        if (positionName == null) {
+            return UserRole.USER;
+        }
+
+        String normalized = positionName.replace(" ", "").trim().toUpperCase();
+        if ("팀장".equals(normalized) || "TEAM_LEADER".equals(normalized) || "TEAMLEADER".equals(normalized)) {
+            return UserRole.TEAM_LEADER;
+        }
+
+        return UserRole.USER;
     }
 
     public void updateProfile(String userName, String departmentCode, String positionName) {
