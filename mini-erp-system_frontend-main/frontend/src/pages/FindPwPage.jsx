@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Key, User, Mail, ShieldCheck, Lock, CheckCircle2, Eye, EyeOff, LogIn } from 'lucide-react';
-import axios from '@/api/axios'; // axios 설정 파일 임포트
+import axios from '@/api/axios';
 
 /**
  * [컴포넌트] Stepper
@@ -27,16 +27,16 @@ const Stepper = ({ currentStep }) => (
 export default function FindPwPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1:본인확인, 2:인증번호, 3:재설정, 4:완료
-  const [showPw, setShowPw] = useState(false); // 비밀번호 보이기/숨기기
-  const [targetUser, setTargetUser] = useState(null); // 찾은 유저의 정보를 임시 저장 (id 포함)
+  const [showPw, setShowPw] = useState(false);
   
   // 입력 폼 상태 관리
   const [formData, setFormData] = useState({
-    userId: '',
+    userId: '', // ID 확인용 (API에 따라 사용 여부 결정)
     email: '',
     authCode: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    resetProof: '' // [추가] 비밀번호 재설정 권한 증명 토큰
   });
 
   // 입력값 변경 핸들러
@@ -47,34 +47,47 @@ export default function FindPwPage() {
 
   /**
    * [기능] STEP 1: 사용자 확인 및 인증번호 발송
+   * ProfilePage의 handleRequestAuth 로직 적용
    */
   const handleVerifyUser = async () => {
+    if (!formData.email) return alert("이메일을 입력해주세요.");
+    
     try {
-      // 아이디와 이메일이 동시에 일치하는 유저 조회
-      const response = await axios.get(`/users?userId=${formData.userId}&email=${formData.email}`);
+      // 백엔드 엔드포인트에 맞춰 POST 요청
+      const response = await axios.post('/auth/password/reset/request', { 
+        email: formData.email 
+        // 필요 시 userId: formData.userId 추가 가능
+      });
       
-      if (response.data && response.data.length > 0) {
-        setTargetUser(response.data[0]); // 유저 객체 저장 (patch 통신 시 id 필요)
+      if (response.data.success) {
+        alert("인증번호가 발송되었습니다.");
         setStep(2);
-        console.log("사용자 확인 성공:", response.data[0].userId);
-      } else {
-        alert("일치하는 사용자 정보가 없습니다. 다시 확인해주세요.");
       }
     } catch (error) {
-      console.error("사용자 확인 중 에러 발생:", error);
-      alert("서버 연결에 실패했습니다. (json-server 실행 여부를 확인하세요)");
+      console.error("인증번호 발송 실패:", error);
+      alert(error.response?.data?.message || "일치하는 사용자 정보가 없거나 발송에 실패했습니다.");
     }
   };
 
   /**
    * [기능] STEP 2: 인증번호 확인
+   * ProfilePage의 handleVerifyCode 로직 적용
    */
-  const handleVerifyCode = () => {
-    // 가짜 서버이므로 데모 번호 123456으로 고정
-    if (formData.authCode === '123456') {
-      setStep(3);
-    } else {
-      alert("인증번호가 일치하지 않습니다. (데모: 123456)");
+  const handleVerifyCode = async () => {
+    try {
+      const response = await axios.post('/auth/password/reset/verify', { 
+        email: formData.email, 
+        verificationCode: formData.authCode 
+      });
+
+      if (response.data.success) {
+        // 서버에서 준 resetProof 토큰 저장
+        setFormData(prev => ({ ...prev, resetProof: response.data.data.resetProof }));
+        setStep(3);
+      }
+    } catch (error) {
+      console.error("인증번호 확인 실패:", error);
+      alert(error.response?.data?.message || "인증번호가 올바르지 않습니다.");
     }
   };
 
@@ -82,12 +95,13 @@ export default function FindPwPage() {
    * [기능] STEP 2-1: 인증번호 재발송
    */
   const handleResendCode = () => {
-    setFormData(prev => ({ ...prev, authCode: '' })); // 입력창 초기화
-    alert("인증번호가 재발송되었습니다. (데모: 123456)");
+    setFormData(prev => ({ ...prev, authCode: '' }));
+    handleVerifyUser(); // 기존 발송 로직 재호출
   };
 
   /**
-   * [기능] STEP 3: 실제 비밀번호 재설정 (PATCH)
+   * [기능] STEP 3: 실제 비밀번호 재설정
+   * ProfilePage의 handleConfirmReset 로직 적용
    */
   const handleResetPassword = async () => {
     // 유효성 검사
@@ -101,15 +115,19 @@ export default function FindPwPage() {
     }
 
     try {
-      // json-server의 해당 유저 데이터만 부분 수정(PATCH)
-      await axios.patch(`/users/${targetUser.id}`, {
-        password: formData.newPassword
+      // resetProof와 함께 새 비밀번호 전송
+      const response = await axios.post('/auth/password/reset/confirm', {
+        resetProof: formData.resetProof,
+        newPassword: formData.newPassword,
+        newPasswordConfirm: formData.confirmPassword
       });
 
-      setStep(4); // 완료 화면으로 이동
+      if (response.data.success) {
+        setStep(4);
+      }
     } catch (error) {
-      console.error("비밀번호 변경 중 에러 발생:", error);
-      alert("비밀번호 변경에 실패했습니다. 다시 시도해주세요.");
+      console.error("비밀번호 변경 실패:", error);
+      alert(error.response?.data?.message || "비밀번호 변경에 실패했습니다.");
     }
   };
 
@@ -176,14 +194,14 @@ export default function FindPwPage() {
             </div>
             <div className="bg-blue-50 p-4 rounded-xl flex items-center gap-3 border border-blue-100">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
-              <p className="text-xs text-blue-600 font-medium">인증번호가 발송되었습니다. (데모: 123456)</p>
+              <p className="text-xs text-blue-600 font-medium">인증번호가 발송되었습니다.</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-gray-700 tracking-tight">인증번호</label>
               <div className="flex gap-2">
                 <input 
                   id="authCode" type="text" maxLength={6} value={formData.authCode} onChange={handleChange} 
-                  placeholder="123456" 
+                  placeholder="000000" 
                   className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-center tracking-[0.5em] font-bold outline-none focus:border-blue-400" 
                 />
                 <button 
