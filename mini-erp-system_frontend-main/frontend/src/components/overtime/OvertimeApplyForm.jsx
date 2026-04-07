@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../api/axios';
-// 04.03 -2 추가 
+// 04.06 추가 
 
 const OvertimeApplyForm = ({ user }) => {
     const [formData, setFormData] = useState({
@@ -28,7 +28,8 @@ const OvertimeApplyForm = ({ user }) => {
 
         // 백엔드 형식에 맞게 시간 뒤에 :00 초 추가
         const apiData = {
-            overtimeDate: formData.overtimeDate,
+            startDate: formData.overtimeDate, 
+            endDate: formData.overtimeDate,
             startTime: `${formData.startTime}:00`,
             endTime: `${formData.endTime}:00`,
             reason: formData.reason || '긴급 대응'

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-// 04.03 수정 
+// 04.06 수정 
 
-const LeaveHistoryTable = ({ historyData = [] }) => {
+const LeaveHistoryTable = ({ historyData = [], onCancel }) => {
 
     const leaveTypeLabels = {
         'ANNUAL': '연차',
@@ -18,6 +18,8 @@ const LeaveHistoryTable = ({ historyData = [] }) => {
             case 'PENDING': return { bg: '#fff9e6', color: '#f1c40f', text: '대기중' };
             case '반려': 
             case 'REJECTED': return { bg: '#fdf2f2', color: '#e74c3c', text: '반려' };
+            case '취소':
+            case 'CANCELLED': return { bg: '#f5f5f5', color: '#999', text: '취소' };
             default: return { bg: '#f5f5f5', color: '#888', text: status };
         }
     };
@@ -60,8 +62,22 @@ const LeaveHistoryTable = ({ historyData = [] }) => {
                                             {statusInfo.text}
                                         </span>
                                     </td>
-                                    <td style={{ ...styles.td, fontSize: '12px' }}>
-                                    {item.appStatus === 'REJECTED' ? item.rejectReason : ''}
+                                    <td style={{ ...styles.td, textAlign: 'left' }}>
+                                    {/* 반려 시 사유 표시 */}
+                                    {item.appStatus === 'REJECTED' && (
+                                        <div style={{fontSize: '12px', color: '#e74c3c', marginBottom: '4px'}}>
+                                            {item.rejectReason}
+                                        </div>
+                                    )}
+                                    {/* 대기중일 때만 취소 버튼 노출 */}
+                                    {item.appStatus === 'PENDING' && (
+                                        <button 
+                                            onClick={() => onCancel(item.appId)}
+                                            style={{ ...styles.cancelBtn, marginLeft: '0', display: 'inline-block' }}
+                                        >
+                                            취소
+                                        </button>
+                                    )}
                                     </td>
                                 </tr>
                             );
@@ -95,6 +111,18 @@ const styles = {
         borderRadius: '6px',
         fontSize: '12px',
         fontWeight: 'bold'
+    },
+    cancelBtn: {
+        padding: '5px 10px',
+        backgroundColor: 'white',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        fontSize: '12px',
+        cursor: 'pointer',
+        color: '#ff4d4f',
+        margin: 0,              
+        display: 'block',
+        textAlign: 'left'
     },
     noData: { padding: '50px', textAlign: 'center', color: '#999' }
 };
